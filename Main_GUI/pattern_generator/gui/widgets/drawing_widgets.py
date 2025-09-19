@@ -2,7 +2,7 @@ import os
 import json
 import time
 import math
-from PyQt6.QtCore import Qt, QTimer, QPoint, QPointF, QRectF, QSize
+from PyQt6.QtCore import Qt, QTimer, QPoint, QPointF, QRectF, QSize, pyqtSignal, QDateTime
 from PyQt6.QtGui import (QPainter, QPen, QBrush, QColor, QFont, QImage, 
                         QPixmap, QKeySequence)
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
@@ -27,7 +27,14 @@ class DrawingCanvasOverlay(QWidget):
       • Live phantom preview while drawing (cursor)
       • Right-click to drop a persistent phantom (P0, P1, …) with links to real actuators
       • Phantoms are saved/loaded/exported with the drawing
+
     """
+
+        # Live-drawing hooks
+    strokeStarted = pyqtSignal()
+    pointDrawn = pyqtSignal(float, float)   # normalized x, y in [0,1]
+    strokeEnded = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_StaticContents)
@@ -234,6 +241,7 @@ class DrawingCanvasOverlay(QWidget):
         Right: manual phantom drop (always allowed)."""
         if e.button() == Qt.MouseButton.LeftButton:
             self._drawing = True
+            self.strokeStarted.emit()
             pos = e.position().toPoint()
             self._last_pos = pos
             pt_norm = self._to_norm(pos)
@@ -308,6 +316,7 @@ class DrawingCanvasOverlay(QWidget):
             if getattr(self, "_draw_enabled", True):
                 self._draw_temp_segment(self._last_pos, pos)
                 self._live_points.append(pt_norm)
+                self.pointDrawn.emit(float(pt_norm[0]), float(pt_norm[1]))
                 self._last_pos = pos
 
             # Trajectory mode: drop phantoms along the path according to sampling rate
@@ -346,6 +355,7 @@ class DrawingCanvasOverlay(QWidget):
         """Finish the live stroke (if any) and clear the HUD."""
         if e.button() == Qt.MouseButton.LeftButton and self._drawing:
             self._drawing = False
+            self.strokeEnded.emit()
 
             # Commit the live stroke only when Draw mode is enabled
             if getattr(self, "_draw_enabled", True):
@@ -654,6 +664,8 @@ class DrawingStudioTab(QWidget):
         self.btnClear = QPushButton("Clear")
         self.btnSave = QPushButton("Save")
         self.chkDraw = QCheckBox("Draw")
+        self.chkLive = QCheckBox("Live Drawing")
+        self.chkLive.setToolTip("When enabled, the stroke is played on the device while you draw.")
         self.chkDraw.setToolTip("Enable freehand drawing on the overlay.")
 
         # CORRECTION: Limiter la largeur des boutons
@@ -664,6 +676,7 @@ class DrawingStudioTab(QWidget):
         hdr.addWidget(self.btnSave)
         hdr.addStretch()  # push Draw mode to the right
         hdr.addWidget(self.chkDraw)
+        hdr.addWidget(self.chkLive)
         root.addLayout(hdr)
 
         # ═══════════════════════════ High-Density Trajectory Creation (no Stop) ═══════════════════════════
@@ -734,6 +747,13 @@ class DrawingStudioTab(QWidget):
         self.btnSave.clicked.connect(self._do_save)
 
         self.chkDraw.toggled.connect(self._set_drawing_enabled)
+        self.chkLive.toggled.connect(self._on_live_toggled)
+        # Live-drawing state
+        self._live_enabled = False
+        self._live_last_on_ms: dict[int, float] = {}
+        self._live_last_intensity: dict[int, int] = {}
+        self._live_throttle_ms = 15   # ms; do not re-send ON to same address faster than this
+
 
         self.chkTrajectory.toggled.connect(self._on_traj_toggled)
         self.spinMaxPhantoms.valueChanged.connect(self._apply_traj_limits)
@@ -845,6 +865,7 @@ class DrawingStudioTab(QWidget):
 
             # Create a fresh overlay bound to the active canvas
             self._overlay = DrawingCanvasOverlay(parent=host)
+            self._wire_overlay_live_signals()
             self._overlay.set_overlay_mode(True)
             # Default pen width (since Pen UI was removed)
             try:
@@ -913,7 +934,176 @@ class DrawingStudioTab(QWidget):
         if self._overlay and ev.type() == QEvent.Type.Resize:
             self._overlay.setGeometry(obj.rect())
         return super().eventFilter(obj, ev)
+    
+    def _wire_overlay_live_signals(self):
+        """Ensure overlay ↔ live handlers are connected exactly once."""
+        if not getattr(self, "_overlay", None):
+            return
+        # Disconnect old bindings if they exist (safe guard)
+        for sig_name in ("strokeStarted", "pointDrawn", "strokeEnded"):
+            try:
+                getattr(self._overlay, sig_name).disconnect()
+            except Exception:
+                pass
+        self._overlay.strokeStarted.connect(self._live_on_stroke_started)
+        self._overlay.pointDrawn.connect(self._live_on_point)
+        self._overlay.strokeEnded.connect(self._live_on_stroke_ended)
 
+    def _bursts_for_point(self, x: float, y: float):
+        """
+        Return a list[(address:int, intensity:int)] for a normalized point (x,y).
+        Tries known overlay methods to stay identical to your normal drawing mapping.
+        """
+        ov = getattr(self, "_overlay", None)
+        if not ov:
+            return []
+        for name in ("compute_bursts_for_point", "_compute_bursts_for_pt",
+                    "bursts_for_point", "bursts_for_cursor"):
+            fn = getattr(ov, name, None)
+            if callable(fn):
+                try:
+                    return fn((float(x), float(y)))
+                except TypeError:
+                    return fn(float(x), float(y))
+        return []
+    
+    def _on_live_toggled(self, on: bool):
+        """Validate HW availability; arm/disarm live mode."""
+        self._live_enabled = bool(on)
+        if on and hasattr(self, "chkDraw") and not self.chkDraw.isChecked():
+            self.chkDraw.setChecked(True)
+
+        gui = getattr(self, "_gui", None) or self.window()
+        api = getattr(gui, "api", None)
+        connected = bool(getattr(api, "connected", False))
+        busy = bool(getattr(gui, "is_running", False))
+
+        if self._live_enabled:
+            if not (api and connected):
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "Hardware", "Please connect to a device first.")
+                self.chkLive.setChecked(False)
+                self._live_enabled = False
+                return
+            sw = getattr(gui, "_stroke_worker", None)
+            if busy or (sw and sw.isRunning()):
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "Busy", "A pattern is currently running. Stop it first.")
+                self.chkLive.setChecked(False)
+                self._live_enabled = False
+                return
+
+            # Fresh state
+            self._live_last_on_ms.clear()
+            self._live_last_intensity.clear()
+
+    def _get_live_params(self) -> tuple[int, int]:
+        """(pulse_ms, freq_code) derived from your current stroke controls."""
+        pulse_ms = 50
+        freq_code = 4
+        gui = getattr(self, "_gui", None) or self.window()
+        step_widget = getattr(gui, "strokeStepMs", None)
+        freq_widget = getattr(gui, "strokeFreqCode", None)
+        try:
+            if step_widget is not None:
+                pulse_ms = int(max(20, min(69, step_widget.value())))
+        except Exception:
+            pass
+        try:
+            if freq_widget is not None:
+                freq_code = int(max(0, min(7, freq_widget.value())))
+        except Exception:
+            pass
+        return pulse_ms, freq_code
+
+    def _live_on_stroke_started(self):
+        if not self._live_enabled:
+            return
+        self._live_last_on_ms.clear()
+        self._live_last_intensity.clear()
+
+    def _live_on_point(self, x: float, y: float):
+        if not self._live_enabled:
+            return
+
+        gui = getattr(self, "_gui", None) or self.window()
+        api = getattr(gui, "api", None)
+        if not api or not getattr(api, "connected", False):
+            return
+        if getattr(gui, "is_running", False):
+            return
+        sw = getattr(gui, "_stroke_worker", None)
+        if sw and sw.isRunning():
+            return
+
+        bursts = self._bursts_for_point(x, y)
+        if not bursts:
+            return
+
+        self._live_send_bursts(bursts)
+
+    def _live_on_stroke_ended(self):
+        if not self._live_enabled:
+            return
+        pulse_ms, _ = self._get_live_params()
+        now_ms = float(QDateTime.currentMSecsSinceEpoch())
+        for addr in list(self._live_last_on_ms.keys()):
+            last = self._live_last_on_ms.get(addr, -1e12)
+            if (now_ms - last) >= (pulse_ms - 1):
+                try:
+                    gui = getattr(self, "_gui", None) or self.window()
+                    api = getattr(gui, "api", None)
+                    if api:
+                        api.send_command(int(addr), 0, 0, 0)
+                except Exception:
+                    pass
+                self._live_last_on_ms.pop(addr, None)
+                self._live_last_intensity.pop(addr, None)
+            else:
+                delay = max(1, int(pulse_ms - (now_ms - last)))
+                QTimer.singleShot(delay, lambda a=int(addr): self._live_off_if_expired(a))
+
+    def _live_off_if_expired(self, addr: int):
+        gui = getattr(self, "_gui", None) or self.window()
+        api = getattr(gui, "api", None)
+        if not api or not getattr(api, "connected", False):
+            return
+        pulse_ms, _ = self._get_live_params()
+        now_ms = float(QDateTime.currentMSecsSinceEpoch())
+        last = self._live_last_on_ms.get(addr, None)
+        if last is None:
+            return
+        if (now_ms - last) >= (pulse_ms - 1):
+            try:
+                api.send_command(int(addr), 0, 0, 0)
+            except Exception:
+                pass
+            self._live_last_on_ms.pop(addr, None)
+            self._live_last_intensity.pop(addr, None)
+
+    def _live_send_bursts(self, bursts: list[tuple[int, int]]):
+        gui = getattr(self, "_gui", None) or self.window()
+        api = getattr(gui, "api", None)
+        if not api or not getattr(api, "connected", False):
+            return
+
+        pulse_ms, freq_code = self._get_live_params()
+        now_ms = float(QDateTime.currentMSecsSinceEpoch())
+
+        for addr, inten in bursts:
+            addr = int(addr)
+            inten = int(max(0, min(15, inten)))
+            last_ms = self._live_last_on_ms.get(addr, -1e12)
+            last_int = self._live_last_intensity.get(addr, -999)
+
+            if (now_ms - last_ms) >= self._live_throttle_ms or inten != last_int:
+                try:
+                    api.send_command(addr, inten, freq_code, 1)
+                except Exception:
+                    pass
+                self._live_last_on_ms[addr] = now_ms
+                self._live_last_intensity[addr] = inten
+                QTimer.singleShot(pulse_ms, lambda a=addr: self._live_off_if_expired(a))
     # ───────────────────────────────────────── Library ops ─────────────────────────────────────────
     def _refresh_list(self):
         self.list.clear()
