@@ -385,8 +385,8 @@ class DrawingCanvasOverlay(QWidget):
     def _draw_temp_segment(self, a: QPoint, b: QPoint):
         painter = QPainter(self._temp)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(QPen(QColor("#111827"), self._pen_width,
-                            Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        painter.setPen(QPen(QColor("#C0C0C0"), self._pen_width,  # Argent classique
+                         Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         painter.drawLine(a, b)
         painter.end()
         self.update()

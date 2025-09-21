@@ -47,10 +47,10 @@ ACTUATOR_SIZE = QSize(42, 42)
 CANVAS_PADDING    = 4
 CANVAS_TOP_PAD    = 0   # was 2
 CANVAS_BOTTOM_PAD = 0   # was 2)
-CANVAS_BG = QColor("#FFFFFF")
-CANVAS_BORDER = QColor("#CBD5E1")  # slate‑300-ish
-SELECTION_COLOR = QColor(25, 113, 194, 180)  # blue overlay
-HOVER_COLOR = QColor(0, 0, 0, 18)
+CANVAS_BG = QColor("#1E293B")  # Dark slate background to match UI
+CANVAS_BORDER = QColor("#334155")  # Darker border
+SELECTION_COLOR = QColor(59, 130, 246, 180)  # Blue selection (more vibrant)
+HOVER_COLOR = QColor(255, 255, 255, 25)  # Light hover on dark background
 
 BRANCH_COLORS = [
     "#ef4444", "#f59e0b", "#10b981", "#3b82f6",
@@ -169,10 +169,13 @@ class MiniPaletteBar(QWidget):
         self.setStyleSheet("""
             #MiniPaletteBar { border: 0; background: transparent; }
             #DragSourceButton {
-                border: 1px solid #D1D5DB; border-radius: 6px; background: #ffffff;
+                border: 1px solid #475569; 
+                border-radius: 6px; 
+                background: #1E293B;
+                color: #F1F5F9;
             }
-            #DragSourceButton:hover { background: #F8FAFC; }
-            #DragSourceButton:pressed { background: #EEF2FF; }
+            #DragSourceButton:hover { background: #334155; }
+            #DragSourceButton:pressed { background: #475569; }
         """)
 
 
@@ -801,10 +804,16 @@ class FlexibleActuatorSelector(QWidget):
         self.btn_create.clicked.connect(self.create_chain)
 
         self.setStyleSheet("""
-            QWidget#ActuatorCanvas { background: #EEF2F7; }
-            QLabel { color: #0F172A; }
-            QPushButton { padding: 4px 8px; border: 1px solid #D1D5DB; border-radius: 6px; }
-            QPushButton:hover { background: #F8FAFC; }
+            QWidget#ActuatorCanvas { background: #0F172A; }
+            QLabel { color: #F1F5F9; }
+            QPushButton { 
+                padding: 4px 8px; 
+                border: 1px solid #475569; 
+                border-radius: 6px; 
+                background: #1E293B;
+                color: #F1F5F9;
+            }
+            QPushButton:hover { background: #334155; }
         """)
     
     def create_chain(self, total: Optional[int] = None, rows: Optional[int] = None,

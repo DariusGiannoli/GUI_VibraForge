@@ -986,27 +986,7 @@ class HapticPatternGUI(QMainWindow):
         
         # Create tab widget for Waveform Lab and Pattern Library
         self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #ccc;
-            }
-            QTabBar::tab {
-                padding: 8px 16px;
-                margin-right: 2px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                border: 1px solid #ccc;
-                background-color: #f5f5f5;
-            }
-            QTabBar::tab:selected {
-                background-color: white;
-                border-bottom: 1px solid white;
-                font-weight: bold;
-            }
-            QTabBar::tab:hover {
-                background-color: #eeeeee;
-            }
-        """)
+        self.tab_widget.setObjectName("MainTabs")
         
         # Create Waveform Lab tab
         waveform_scroll = QScrollArea()
@@ -1477,22 +1457,36 @@ class HapticPatternGUI(QMainWindow):
         self._log_info(f"Waveform: {self.current_waveform_name}")
         
     def update_waveform_info(self):
+        # Style avec police plus petite
+        self.waveformInfoLabel.setStyleSheet("""
+            background: #E5E7EB !important;
+            color: #111827 !important;
+            border: 1px solid #D1D5DB !important;
+            border-radius: 8px;
+            padding: 6px;
+            font-style: italic;
+            font-size: 11px;
+            line-height: 1.3;
+        """)
+        
         name = self.waveformComboBox.currentText()
         if not self._wf_entries or name == "No waveforms found":
             self.waveformInfoLabel.setText("No waveforms available.")
             self.current_event = None
             return
+            
         entry = self._wf_by_display.get(name)
         ev = self.wf_manager.load_event(entry) if entry else None
         self.current_event = ev
+        
         if ev and ev.waveform_data:
             dur = ev.waveform_data.duration or 0.0
-            sr  = ev.waveform_data.sample_rate or 0.0
-            md  = ev.metadata.name if ev.metadata else entry["name"]
-            self.waveformInfoLabel.setText(f"<b>{md}</b><br>Duration: {dur:.2f}s • Sample Rate: {sr:g}Hz")
-            # (removed) offsetSpinBox.setMaximum(...)
+            sr = ev.waveform_data.sample_rate or 0.0
+            md = ev.metadata.name if ev.metadata else entry["name"]
+            self.waveformInfoLabel.setText(f"<b>{md}</b><br>Duration: {dur:.2f}s • Rate: {sr:g}Hz")
         else:
             self.waveformInfoLabel.setText("Failed to load waveform.")
+        
     
     def get_current_waveform_info(self):
         return {"source": "Waveform Library", "name": self.waveformComboBox.currentText(), "event": self.current_event}
@@ -2041,17 +2035,17 @@ def main():
 
     # Palette claire pour éviter les champs foncés qui mangent le texte
     pal = QPalette()
-    pal.setColor(QPalette.ColorRole.Window,       QColor("#F6F7F9"))
-    pal.setColor(QPalette.ColorRole.Base,         QColor("#FFFFFF"))
-    pal.setColor(QPalette.ColorRole.AlternateBase,QColor("#F3F4F6"))
-    pal.setColor(QPalette.ColorRole.Text,         QColor("#111827"))
-    pal.setColor(QPalette.ColorRole.WindowText,   QColor("#111827"))
-    pal.setColor(QPalette.ColorRole.Button,       QColor("#FFFFFF"))
-    pal.setColor(QPalette.ColorRole.ButtonText,   QColor("#111827"))
-    pal.setColor(QPalette.ColorRole.ToolTipBase,  QColor("#111827"))
-    pal.setColor(QPalette.ColorRole.ToolTipText,  QColor("#F9FAFB"))
-    pal.setColor(QPalette.ColorRole.Highlight,    QColor("#3B82F6"))
-    pal.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
+    pal.setColor(QPalette.ColorRole.Window,            QColor("#0D1117"))
+    pal.setColor(QPalette.ColorRole.Base,              QColor("#151B24"))
+    pal.setColor(QPalette.ColorRole.AlternateBase,     QColor("#121826"))
+    pal.setColor(QPalette.ColorRole.Text,              QColor("#E5E7EB"))
+    pal.setColor(QPalette.ColorRole.WindowText,        QColor("#E5E7EB"))
+    pal.setColor(QPalette.ColorRole.Button,            QColor("#1A2230"))
+    pal.setColor(QPalette.ColorRole.ButtonText,        QColor("#E5E7EB"))
+    pal.setColor(QPalette.ColorRole.ToolTipBase,       QColor("#1A2230"))
+    pal.setColor(QPalette.ColorRole.ToolTipText,       QColor("#E5E7EB"))
+    pal.setColor(QPalette.ColorRole.Highlight,         QColor("#1F2F4D"))
+    pal.setColor(QPalette.ColorRole.HighlightedText,   QColor("#E5E7EB"))
     app.setPalette(pal)
 
     # Charger la feuille de style

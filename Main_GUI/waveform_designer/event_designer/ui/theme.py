@@ -1,45 +1,45 @@
 # theme.py
 """
-Modern, minimal theme + QSS for the Haptic Waveform Designer.
-Hover states now use soft gray instead of blue.
+Dark theme matching the main interface colors.
+Deep slate colors with blue accents.
 """
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QPalette, QColor
 
-# Palette tokens
-_ACCENT   = "#3B82F6"  # blue-500 (kept for focus/selection)
-_ACCENT_D = "#1D4ED8"  # blue-700
-_TEXT     = "#0F172A"  # slate-900
-_SUBTEXT  = "#475569"  # slate-600
-_BORDER   = "#E2E8F0"  # slate-200
-_PANEL    = "#FFFFFF"
-_CANVAS   = "#FAFBFC"
-_ALT      = "#F8FAFC"
-_PLACE    = "#94A3B8"
-_DANGER   = "#EF4444"
-
-# New: neutral hover tones
-_HOVER_BG = "#F1F5F9"  # light gray hover
-_HOVER_BG_D = "#E5E7EB"  # pressed/active gray
-_HOVER_BORDER = "#CBD5E1"  # slightly darker border on hover
+# Dark theme palette tokens
+_APP_BG      = "#0D1117"  # Main app background
+_SURFACE     = "#121826"  # Panel/card background
+_SURFACE_ALT = "#151B24"  # Alternative surface
+_TEXT        = "#E5E7EB"  # Normal text
+_TEXT_MUTED  = "#A7B0C0"  # Muted text
+_BORDER      = "#2B3446"  # Normal borders
+_BORDER_HOVER= "#3A455A"  # Hover borders
+_PRIMARY     = "#1E3A8A"  # Primary blue
+_PRIMARY_HOVER="#1D4ED8"  # Primary hover
+_FOCUS       = "#2563EB"  # Focus ring
+_HOVER_BG    = "#1B2331"  # Hover background
+_SELECTION   = "#1F2F4D"  # Selection background
+_DANGER      = "#DC2626"  # Danger/error
+_SUCCESS     = "#16A34A"  # Success
+_WARNING     = "#D97706"  # Warning
 
 def apply_ultra_clean_theme(app: QApplication) -> None:
     try: app.setStyle("Fusion")
     except Exception: pass
 
     pal = QPalette()
-    pal.setColor(QPalette.ColorRole.Window,        QColor(_CANVAS))
-    pal.setColor(QPalette.ColorRole.Base,          QColor(_PANEL))
-    pal.setColor(QPalette.ColorRole.AlternateBase, QColor(_ALT))
+    pal.setColor(QPalette.ColorRole.Window,        QColor(_APP_BG))
+    pal.setColor(QPalette.ColorRole.Base,          QColor(_SURFACE))
+    pal.setColor(QPalette.ColorRole.AlternateBase, QColor(_SURFACE_ALT))
     pal.setColor(QPalette.ColorRole.Text,          QColor(_TEXT))
     pal.setColor(QPalette.ColorRole.WindowText,    QColor(_TEXT))
     pal.setColor(QPalette.ColorRole.ButtonText,    QColor(_TEXT))
-    pal.setColor(QPalette.ColorRole.ToolTipText,   QColor(_PANEL))
-    pal.setColor(QPalette.ColorRole.Button,        QColor(_PANEL))
-    pal.setColor(QPalette.ColorRole.Highlight,     QColor(_ACCENT))
+    pal.setColor(QPalette.ColorRole.ToolTipText,   QColor(_TEXT))
+    pal.setColor(QPalette.ColorRole.Button,        QColor(_SURFACE))
+    pal.setColor(QPalette.ColorRole.Highlight,     QColor(_PRIMARY))
     pal.setColor(QPalette.ColorRole.HighlightedText, QColor("#FFFFFF"))
-    pal.setColor(QPalette.ColorRole.PlaceholderText, QColor(_PLACE))
+    pal.setColor(QPalette.ColorRole.PlaceholderText, QColor(_TEXT_MUTED))
     pal.setColor(QPalette.ColorRole.BrightText,    QColor(_DANGER))
     app.setPalette(pal)
 
@@ -48,17 +48,17 @@ def load_ultra_clean_qss(app: QApplication) -> None:
     /* ---- Base ---- */
     * {{ outline: 0; }}
     QWidget {{
-        background: {_CANVAS};
+        background: {_APP_BG};
         color: {_TEXT};
         font-size: 13px;
         font-family: -apple-system, "SF Pro Text", "Segoe UI Variable", "Segoe UI",
                      Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
     }}
-    QLabel {{ color: {_SUBTEXT}; font-weight: 500; }}
+    QLabel {{ color: {_TEXT}; font-weight: 500; }}
 
     /* ---- Cards ---- */
     QGroupBox {{
-        background: {_PANEL};
+        background: {_SURFACE};
         border: 1px solid {_BORDER};
         border-radius: 10px;
         margin-top: 12px;
@@ -69,7 +69,7 @@ def load_ultra_clean_qss(app: QApplication) -> None:
         left: 10px;
         padding: 0 6px;
         color: {_TEXT};
-        background: {_PANEL};
+        background: {_SURFACE};
         font-weight: 700;
     }}
 
@@ -77,52 +77,52 @@ def load_ultra_clean_qss(app: QApplication) -> None:
     QPushButton, QToolButton,
     QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QTimeEdit {{
         height: 28px;
-        border: 1px solid {_BORDER};
+        border: 1px solid {_BORDER_HOVER};
         border-radius: 8px;
-        background: #FFFFFF;
+        background: {_SURFACE_ALT};
         padding: 0 10px;
-        selection-background-color: {_ACCENT};
-        selection-color: #FFFFFF;
+        color: {_TEXT};
+        selection-background-color: {_SELECTION};
+        selection-color: {_TEXT};
     }}
-    QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {{ color: {_TEXT}; }}
 
-    /* Focus (keep accent for accessibility) */
+    /* Focus */
     QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus,
     QDateEdit:focus, QTimeEdit:focus {{
-        border: 2px solid {_ACCENT};
+        border: 2px solid {_FOCUS};
         padding: 0 9px;
     }}
 
-    /* Buttons — neutral hover */
-    QPushButton {{ font-weight: 600; color: {_TEXT}; }}
-    QPushButton:hover {{ background: {_HOVER_BG}; border-color: {_HOVER_BORDER}; }}
-    QPushButton:pressed {{ background: {_HOVER_BG_D}; }}
-    QPushButton:disabled {{ color: {_PLACE}; border-color: {_BORDER}; background: #FFFFFF; }}
+    /* Buttons */
+    QPushButton {{ font-weight: 600; color: {_TEXT}; background: {_SURFACE}; }}
+    QPushButton:hover {{ background: {_HOVER_BG}; border-color: {_BORDER_HOVER}; }}
+    QPushButton:pressed {{ background: {_SURFACE_ALT}; }}
+    QPushButton:disabled {{ color: {_TEXT_MUTED}; border-color: {_BORDER}; background: {_SURFACE}; }}
 
-    /* Primary button (opt-in via objectName) */
+    /* Primary button */
     QPushButton#primaryButton {{
-        background: {_ACCENT};
-        border: 1px solid {_ACCENT};
+        background: {_PRIMARY};
+        border: 1px solid {_PRIMARY};
         color: #FFFFFF;
     }}
-    QPushButton#primaryButton:hover  {{ background: {_ACCENT_D}; border-color: {_ACCENT_D}; }}
-    QPushButton#primaryButton:pressed{{ background: {_ACCENT_D}; }}
+    QPushButton#primaryButton:hover  {{ background: {_PRIMARY_HOVER}; border-color: {_PRIMARY_HOVER}; }}
+    QPushButton#primaryButton:pressed{{ background: {_PRIMARY_HOVER}; }}
 
-    /* Tool buttons — neutral hover */
-    QToolButton {{ padding: 0 6px; border-radius: 6px; }}
+    /* Tool buttons */
+    QToolButton {{ padding: 0 6px; border-radius: 6px; background: {_SURFACE}; }}
     QToolButton:hover {{ background: {_HOVER_BG}; }}
+    QToolButton:checked {{ background: {_SELECTION}; border-color: {_FOCUS}; }}
 
     /* Combo popup */
-    QComboBox::drop-down {{ border: 0; width: 18px; }}
+    QComboBox::drop-down {{ border: 0; width: 18px; background: {_SURFACE}; }}
     QComboBox QAbstractItemView {{
-        background: #FFFFFF;
+        background: {_SURFACE_ALT};
         border: 1px solid {_BORDER};
         border-radius: 8px;
         padding: 4px 0;
-        selection-background-color: {_ACCENT}; /* selection remains accent */
-        selection-color: #FFFFFF;
+        selection-background-color: {_SELECTION};
+        selection-color: {_TEXT};
     }}
-    /* Neutral hover rows in popups */
     QComboBox QAbstractItemView::item:hover {{
         background: {_HOVER_BG};
         color: {_TEXT};
@@ -130,14 +130,17 @@ def load_ultra_clean_qss(app: QApplication) -> None:
 
     /* Spin arrows */
     QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {{
-        width: 16px; border: 0; margin: 0;
+        width: 16px; border: 0; margin: 0; background: {_SURFACE};
+    }}
+    QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover {{
+        background: {_HOVER_BG};
     }}
 
     /* ---- Tabs ---- */
     QTabWidget::pane {{
         border: 1px solid {_BORDER};
         border-radius: 10px;
-        background: #FFFFFF;
+        background: {_SURFACE};
     }}
     QTabBar::tab {{
         border: 1px solid {_BORDER};
@@ -146,15 +149,15 @@ def load_ultra_clean_qss(app: QApplication) -> None:
         border-top-right-radius: 8px;
         padding: 7px 14px;
         margin-right: 2px;
-        background: #F8FAFC;
-        color: {_SUBTEXT};
+        background: {_SURFACE_ALT};
+        color: {_TEXT_MUTED};
         font-weight: 600;
     }}
     QTabBar::tab:selected {{
-        background: #FFFFFF;
+        background: {_SURFACE};
         color: {_TEXT};
+        border-bottom: 1px solid {_SURFACE};
     }}
-    /* Neutral tab hover */
     QTabBar::tab:hover {{
         background: {_HOVER_BG};
         color: {_TEXT};
@@ -162,29 +165,34 @@ def load_ultra_clean_qss(app: QApplication) -> None:
 
     /* ---- Lists / Trees / Text ---- */
     QListWidget, QTreeWidget, QTextEdit, QPlainTextEdit {{
-        background: #FFFFFF;
+        background: {_SURFACE_ALT};
         border: 1px solid {_BORDER};
         border-radius: 8px;
         padding: 8px;
+        color: {_TEXT};
     }}
-    /* Neutral row hover */
     QListView::item:hover, QTreeView::item:hover, QTableView::item:hover {{
         background: {_HOVER_BG};
+        color: {_TEXT};
+    }}
+    QListView::item:selected, QTreeView::item:selected {{
+        background: {_SELECTION};
         color: {_TEXT};
     }}
 
     /* ---- Tables ---- */
     QTableView {{
-        background: #FFFFFF;
+        background: {_SURFACE_ALT};
         border: 1px solid {_BORDER};
         border-radius: 8px;
         gridline-color: {_BORDER};
-        selection-background-color: {_ACCENT};
-        selection-color: #FFFFFF;
+        selection-background-color: {_SELECTION};
+        selection-color: {_TEXT};
+        alternate-background-color: {_SURFACE};
     }}
     QHeaderView::section {{
-        background: #F8FAFC;
-        color: {_SUBTEXT};
+        background: {_SURFACE};
+        color: {_TEXT_MUTED};
         border: 1px solid {_BORDER};
         padding: 6px 8px;
         font-weight: 600;
@@ -192,40 +200,44 @@ def load_ultra_clean_qss(app: QApplication) -> None:
 
     /* ---- Sliders ---- */
     QSlider::groove:horizontal {{
-        height: 4px; background: {_BORDER}; border-radius: 2px;
+        height: 8px; background: {_BORDER}; border-radius: 4px;
     }}
     QSlider::handle:horizontal {{
-        width: 16px; height: 16px; margin: -6px 0;
-        border-radius: 8px; background: {_ACCENT};
+        width: 20px; height: 20px; margin: -6px 0;
+        border-radius: 10px; background: {_PRIMARY};
+        border: 2px solid {_APP_BG};
     }}
-    QSlider::handle:horizontal:hover {{ background: {_ACCENT}; }}  /* no color jump on hover */
+    QSlider::handle:horizontal:hover {{ background: {_PRIMARY_HOVER}; }}
 
     /* ---- Checks / Radios ---- */
-    QCheckBox, QRadioButton {{ spacing: 8px; }}
+    QCheckBox, QRadioButton {{ spacing: 8px; color: {_TEXT}; }}
     QCheckBox::indicator, QRadioButton::indicator {{
-        width: 16px; height: 16px; border: 1px solid {_BORDER};
-        border-radius: 3px; background: #FFFFFF;
+        width: 16px; height: 16px; border: 1px solid {_BORDER_HOVER};
+        border-radius: 4px; background: {_SURFACE_ALT};
     }}
     QRadioButton::indicator {{ border-radius: 8px; }}
     QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
-        border-color: {_ACCENT}; background: {_ACCENT};
+        border-color: {_PRIMARY}; background: {_PRIMARY};
+    }}
+    QCheckBox::indicator:hover, QRadioButton::indicator:hover {{
+        background: {_HOVER_BG};
     }}
 
     /* ---- Splitter ---- */
-    QSplitter::handle {{ background: {_BORDER}; width: 4px; height: 4px; border-radius: 2px; }}
-    QSplitter::handle:hover {{ background: {_HOVER_BG}; }}
+    QSplitter::handle {{ background: {_BORDER}; width: 6px; height: 6px; border-radius: 3px; }}
+    QSplitter::handle:hover {{ background: {_BORDER_HOVER}; }}
 
     /* ---- Scrollbars ---- */
-    QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px; }}
-    QScrollBar::handle:vertical {{ background: #CBD5E1; border-radius: 5px; min-height: 28px; }}
-    QScrollBar::handle:vertical:hover {{ background: #A7B4C6; }}
-    QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 2px; }}
-    QScrollBar::handle:horizontal {{ background: #CBD5E1; border-radius: 5px; min-width: 28px; }}
+    QScrollBar:vertical {{ background: {_SURFACE}; width: 12px; margin: 2px; border-radius: 6px; }}
+    QScrollBar::handle:vertical {{ background: {_BORDER_HOVER}; border-radius: 6px; min-height: 28px; }}
+    QScrollBar::handle:vertical:hover {{ background: {_TEXT_MUTED}; }}
+    QScrollBar:horizontal {{ background: {_SURFACE}; height: 12px; margin: 2px; border-radius: 6px; }}
+    QScrollBar::handle:horizontal {{ background: {_BORDER_HOVER}; border-radius: 6px; min-width: 28px; }}
     QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
 
     /* ---- Menus ---- */
     QMenu {{
-        background: #FFFFFF;
+        background: {_SURFACE_ALT};
         border: 1px solid {_BORDER};
         border-radius: 8px;
         padding: 6px 0;
@@ -235,39 +247,49 @@ def load_ultra_clean_qss(app: QApplication) -> None:
         border-radius: 6px;
         color: {_TEXT};
     }}
-    /* Neutral hover/selection in menus */
     QMenu::item:selected {{
-        background: {_HOVER_BG};
+        background: {_SELECTION};
         color: {_TEXT};
     }}
 
     /* ---- Tooltips / Status ---- */
     QToolTip {{
-        background: {_TEXT};
-        color: #FFFFFF;
-        border: 0;
+        background: {_SURFACE_ALT};
+        color: {_TEXT};
+        border: 1px solid {_BORDER};
         padding: 6px 8px;
         border-radius: 6px;
-        opacity: 220;
     }}
     QStatusBar {{
-        background: {_PANEL};
-        border: 1px solid {_BORDER};
-        border-radius: 8px;
+        background: {_SURFACE};
+        border-top: 1px solid {_BORDER};
         padding: 4px 8px;
+        color: {_TEXT_MUTED};
     }}
 
     /* ---- Progress ---- */
     QProgressBar {{
         border: 1px solid {_BORDER};
         border-radius: 8px;
-        background: #FFFFFF;
+        background: {_SURFACE_ALT};
         padding: 2px;
         text-align: center;
+        color: {_TEXT};
     }}
     QProgressBar::chunk {{
-        background-color: {_ACCENT};
+        background-color: {_PRIMARY};
         border-radius: 6px;
+    }}
+
+    /* ---- Graphics View ---- */
+    QGraphicsView {{
+        border: none;
+        background: {_APP_BG};
+    }}
+
+    /* ---- Canvas specific ---- */
+    QWidget#ActuatorCanvas {{
+        background: {_APP_BG};
     }}
     """
     app.setStyleSheet(qss)
