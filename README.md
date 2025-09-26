@@ -1,6 +1,6 @@
 # VibraForge GUI
 
-# Authors: Darius Giannoli & Gabriel Taieb 
+# Authors: Darius Giannoli, Gabriel Taieb, Yang Chen 
 
 Haptic Graphical User Interface (GUI) for the VibraForge project of BingJian Huang
 
